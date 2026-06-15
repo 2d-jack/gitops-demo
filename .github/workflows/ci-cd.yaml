@@ -147,8 +147,11 @@ jobs:
           # Replace the image line in deployment.yaml
           sed -i "s|image: ${IMAGE_NAME}:.*|image: ${IMAGE}|g" k8s/deployment.yaml
 
+          sed -i "s|value: \"[0-9]*\.[0-9]*\.[0-9]*\"  # APP_VERSION|value: \"${SHORT_SHA}\"  # APP_VERSION|g" k8s/deployment.yaml
+
           echo "Updated deployment to use image: ${IMAGE}"
-          cat k8s/deployment.yaml | grep "image:"
+          cat k8s/deployment.yaml | grep -E "image:|APP_VERSION" -A1
+
 
       - name: Commit and push manifest update
         run: |
