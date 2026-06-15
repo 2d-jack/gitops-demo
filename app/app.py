@@ -4,7 +4,7 @@ import socket
 
 app = Flask(__name__)
 
-APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
+APP_VERSION = os.getenv("APP_VERSION", "1.2.1")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
 
