@@ -12,7 +12,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 def home():
     return jsonify({
         "status": "ok",
-        "message": "Hello from GitOps Demo App!",
+        "message": "Hello from GitOps Demo App — v2 is LIVE!",
         "version": APP_VERSION,
         "environment": ENVIRONMENT,
         "hostname": socket.gethostname(),
