@@ -3,6 +3,7 @@ import os
 import socket
 
 app = Flask(__name__)
+app.config["WTF_CSRF_ENABLED"] = False
 
 APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
