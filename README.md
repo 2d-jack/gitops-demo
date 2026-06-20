@@ -96,3 +96,6 @@ flowchart TD
     style J6 fill:#78350f,color:#fef3c7,stroke:#d97706
     style GHCR fill:#3b0764,color:#ede9fe,stroke:#7c3aed
 ```
+
+<img width="1440" height="2840" alt="image" src="https://github.com/user-attachments/assets/a8c1cdeb-3f45-4f5c-b016-8aaf07fc95be" />
+
