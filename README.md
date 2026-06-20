@@ -1,70 +1,41 @@
 # gitops-demo
 
-```mermaid
 flowchart TB
 
-    Dev[👨‍💻 Developer]
+    Dev[Developer]
+    GH[GitHub Repository<br/>Source Code + K8s Manifests]
+    REG[ghcr.io Registry]
 
-    Repo[(📦 GitHub Repository)]
+    Dev -->|git push| GH
 
-    subgraph CI["⚙️ GitHub Actions (CI)"]
-        T[Test]
-        B[Build Docker Image]
-        S[Trivy Security Scan]
-        P[Push Image to GHCR]
-        M[Update deployment.yaml]
-    end
+    subgraph Ubuntu["Ubuntu Server"]
+        direction TB
 
-    Registry[(🐳 GitHub Container Registry<br/>GHCR)]
+        JENKINS[Jenkins :8080<br/><br/>
+        Stage 1 - Gitleaks (Secret Detection)<br/>
+        Stage 2 - pip-audit (Dependency CVE Scan)<br/>
+        Stage 3 - Tests + Coverage<br/>
+        Stage 4 - SonarQube (SAST + Quality + Hotspots)<br/>
+        Stage 5 - Quality Gate (Pass/Fail)<br/>
+        Stage 6 - Trivy Config (K8s Manifest Scan)<br/>
+        Stage 7 - Docker Build<br/>
+        Stage 8 - Trivy Image (Container CVE Scan)<br/>
+        Stage 9 - Push GHCR<br/>
+        Stage 10 - Update GitOps Manifest]
 
-    subgraph Server["🖥️ Ubuntu Server"]
-        
-        subgraph K3S["☸️ K3s Cluster"]
-            
-            Argo[🔄 ArgoCD]
+        SONAR[SonarQube :9000<br/>- SAST<br/>- Code Quality<br/>- Coverage<br/>- Hotspots]
 
-            subgraph NS["Namespace: gitops-app"]
-                Deploy[Deployment]
-                Pod1[Flask Pod]
-                Pod2[Flask Pod]
-                SVC[Service]
-                ING[Ingress / Traefik]
-            end
+        subgraph K3S["K3s Cluster"]
+            direction TB
+            ARGO[ArgoCD (GitOps)]
+            APP[gitops-app (Flask)]
+            ARGO --> APP
         end
+
+        JENKINS --> SONAR
     end
 
-    User[🌐 End User]
-
-    Dev -->|git push| Repo
-
-    Repo -->|trigger workflow| T
-    T --> B
-    B --> S
-
-    S -->|Pass| P
-    P --> Registry
-
-    P --> M
-    M -->|commit updated manifest| Repo
-
-    Repo -->|watch k8s/ manifests| Argo
-
-    Registry -->|pull image| Deploy
-
-    Argo -->|sync| Deploy
-
-    Deploy --> Pod1
-    Deploy --> Pod2
-
-    Pod1 --> SVC
-    Pod2 --> SVC
-
-    SVC --> ING
-    ING --> User
-
-    style Repo fill:#24292e,color:#fff
-    style Registry fill:#0969da,color:#fff
-    style Argo fill:#ef7b4d,color:#fff
-    style K3S fill:#326ce5,color:#fff
-    style CI fill:#2da44e,color:#fff
-```
+    GH -->|Poll every 10 min| JENKINS
+    JENKINS -->|Push Image| REG
+    JENKINS -->|Update Manifest| GH
+    GH -->|Sync GitOps Changes| ARGO
