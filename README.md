@@ -1,102 +1,99 @@
 # gitops-demo
-## DevSecOps
+## devops
 
 ```mermaid
 flowchart TD
     DEV([👨‍💻 Developer])
     DEV -->|git push| GH
 
-    GH["📦 GitHub Repository
-    source code + k8s manifests"]
-
-    GH -->|poll every minute| J1
-
-    subgraph JENKINS ["🖥️ Jenkins CI/CD Server :8080"]
-        J1["**Stage 1 — Checkout**
-        Clone repo · get git SHA"]
-
-        J1 --> J2
-
-        J2["🔍 Stage 2 — Secret Scan
-        Gitleaks · scans full git history"]
-
-        J2 -->|❌ secrets found → abort| FAIL
-        J2 -->|✅ clean| J3
-
-        J3["📦 Stage 3 — Dependency Scan SCA
-        pip-audit · checks requirements.txt CVEs"]
-
-        J3 --> J4
-
-        J4["🧪 Stage 4 — Unit Tests + Coverage
-        pytest + pytest-cov → coverage.xml"]
-
-        J4 --> J5
-
-        J5["🔒 Stage 5 — SAST Analysis
-        SonarQube · bugs · hotspots · smells"]
-
-        J5 --> J6
-
-        J6{"🚦 Stage 6 — Quality Gate
-        Security A · Hotspots 80%+"}
-
-        J6 -->|❌ gate failed → abort| FAIL
-        J6 -->|✅ passed| J7
-
-        J7["🏗️ Stage 7 — IaC Scan
-        Trivy config · K8s manifest misconfigs"]
-
-        J7 -->|❌ CRITICAL misconfiguration → abort| FAIL
-        J7 -->|✅ clean| J8
-
-        J8["🐳 Stage 8 — Docker Build
-        image tagged with git SHA + latest"]
-
-        J8 --> J9
-
-        J9["🔎 Stage 9 — Container Scan
-        Trivy image · CVEs in built image"]
-
-        J9 -->|❌ unfixed CRITICAL CVE → abort| FAIL
-        J9 -->|✅ clean| J10
-
-        J10["📤 Stage 10 — Push to GHCR
-        ghcr.io/2d-jack/gitops-demo:SHA"]
-
-        J10 --> J11
-
-        J11["📝 Stage 11 — Update GitOps Manifest
-        Patch k8s/deployment.yaml → git push"]
+    subgraph GH ["📦 GitHub Repository"]
+        APP["app/"]
+        K8S["k8s/ manifests"]
     end
 
-    FAIL(["❌ Pipeline Failed"])
+    GH -->|triggers on push to main| CI
 
-    J5 <-->|analysis + webhook| SQ
+    subgraph CI ["⚙️ GitHub Actions"]
+        S1["🧪 Step 1 — Run Tests
+        pytest · Python 3.12"]
 
-    SQ["🔎 SonarQube :9000
-    SAST · Coverage · Hotspots"]
+        S1 --> S2
 
-    J11 -->|manifest commit triggers| ARGO
+        S2["🐳 Step 2 — Docker Build
+        Build image · tag with git SHA"]
 
-    subgraph K3S ["☸️ K3s Cluster"]
-        ARGO["🔄 ArgoCD
-        polls GitHub · syncs manifests"]
-        ARGO --> APP
-        APP["🐍 Flask App
-        version = git SHA"]
+        S2 --> S3
+
+        S3["🔍 Step 3 — Trivy Scan
+        SARIF → GitHub Security tab"]
+
+        S3 --> S4
+
+        S4{"🛡️ CRITICAL CVE found?"}
+
+        S4 -->|❌ Yes — unfixed CRITICAL → abort| FAIL
+        S4 -->|✅ No CVEs → continue| S5
+
+        S5["📤 Step 4 — Push to GHCR
+        ghcr.io/username/gitops-demo:SHA"]
+
+        S5 --> S6
+
+        S6["📝 Step 5 — Update Manifest
+        sed image tag in k8s/deployment.yaml
+        git commit · git push"]
     end
 
-    J10 --> GHCR["📦 ghcr.io registry"]
-    GHCR --> ARGO
+    FAIL(["❌ Pipeline Failed
+    Image NOT pushed
+    Cluster stays on last good version"])
+
+    S6 -->|commit triggers| GH2
+
+    GH2["📦 GitHub Repo
+    k8s/deployment.yaml updated"]
+
+    GH2 -->|ArgoCD polls every 3 min| ARGO
+
+    S5 -->|image push| GHCR["🗂️ ghcr.io Registry"]
+
+    subgraph K3S ["🖥️ Ubuntu Server"]
+        subgraph CLUSTER ["☸️ K3s Cluster"]
+            ARGO["🔄 ArgoCD
+            detects manifest change
+            auto-syncs · self-heals"]
+
+            ARGO -->|pulls image| GHCR
+            ARGO -->|applies manifests| DEP
+
+            subgraph NS ["namespace: gitops-app"]
+                DEP["🔁 Rolling Update
+                2 replicas · maxUnavailable 0"]
+                DEP --> POD1["🐍 Pod 1
+                Flask app"]
+                DEP --> POD2["🐍 Pod 2
+                Flask app"]
+                SVC["🔀 ClusterIP Service
+                port 80 → 5000"]
+                ING["🌐 Traefik Ingress
+                / → gitops-app:80"]
+                ING --> SVC
+                SVC --> POD1
+                SVC --> POD2
+            end
+        end
+    end
+
+    USER([🌍 User]) -->|HTTP request| ING
 
     style FAIL fill:#7f1d1d,color:#fecaca,stroke:#991b1b
-    style JENKINS fill:#1e1b4b,color:#e0e7ff,stroke:#4338ca
+    style CI fill:#1e1b4b,color:#e0e7ff,stroke:#4338ca
     style K3S fill:#064e3b,color:#d1fae5,stroke:#059669
-    style SQ fill:#1e3a5f,color:#bfdbfe,stroke:#2563eb
-    style J6 fill:#78350f,color:#fef3c7,stroke:#d97706
+    style CLUSTER fill:#065f46,color:#d1fae5,stroke:#10b981
+    style NS fill:#0f3d2e,color:#a7f3d0,stroke:#34d399
+    style GH fill:#1f2937,color:#f3f4f6,stroke:#6b7280
+    style GH2 fill:#1f2937,color:#f3f4f6,stroke:#6b7280
     style GHCR fill:#3b0764,color:#ede9fe,stroke:#7c3aed
+    style S4 fill:#78350f,color:#fef3c7,stroke:#d97706
+    style ARGO fill:#134e4a,color:#ccfbf1,stroke:#14b8a6
 ```
-
-<img width="1440" height="2840" alt="image" src="https://github.com/user-attachments/assets/a8c1cdeb-3f45-4f5c-b016-8aaf07fc95be" />
-
