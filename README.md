@@ -1,7 +1,6 @@
 # gitops-demo
 
 graph TD
-    %% Color definitions and styles
     classDef dev fill:#ffe6cc,stroke:#d79b00,stroke-width:2px,color:#000;
     classDef github fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px,color:#000;
     classDef server fill:#f5f5f5,stroke:#666,stroke-width:2px,color:#000,stroke-dasharray: 5 5;
@@ -21,21 +20,21 @@ graph TD
         subgraph Jenkins_Service [Jenkins :8080]
             direction TB
             S1[Stage 1: Checkout]:::stage
-            S2[Stage 2: Secret Scan<br>Gitleaks]:::stage
-            S3[Stage 3: Dependency Scan<br>pip-audit]:::stage
-            S4[Stage 4: Unit Tests + Coverage<br>pytest]:::stage
-            S5[Stage 5: SonarQube Analysis<br>sonar-scanner]:::stage
-            S6[Stage 6: Quality Gate<br>Pass/Fail]:::stage
-            S7[Stage 7: IaC Scan<br>Trivy Config]:::stage
+            S2[Stage 2: Secret Scan: Gitleaks]:::stage
+            S3[Stage 3: Dependency Scan: pip-audit]:::stage
+            S4[Stage 4: Unit Tests + Coverage: pytest]:::stage
+            S5[Stage 5: SonarQube Analysis: sonar-scanner]:::stage
+            S6[Stage 6: Quality Gate: Pass/Fail]:::stage
+            S7[Stage 7: IaC Scan: Trivy Config]:::stage
             S8[Stage 8: Docker Build]:::stage
-            S9[Stage 9: Container Scan<br>Trivy Image]:::stage
+            S9[Stage 9: Container Scan: Trivy Image]:::stage
             S10[Stage 10: Push to GHCR]:::stage
             S11[Stage 11: Update GitOps Manifest]:::stage
             
             S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10 --> S11
         end
 
-        Sonar[SonarQube :9000<br>- SAST Analysis<br>- Code Quality<br>- Test Coverage<br>- Security Hotspots]:::sonar
+        Sonar[SonarQube :9000<br>: SAST Analysis<br>: Code Quality<br>: Test Coverage<br>: Security Hotspots]:::sonar
         
         subgraph K3s_Cluster [K3s Cluster]
             Argo[ArgoCD<br>GitOps Controller]:::k3s
@@ -44,7 +43,6 @@ graph TD
         end
     end
 
-    %% Pipeline interactions
     Developer -->|git push| Repo
     Repo -->|Polls every 1 min| S1
     S5 -->|Sends data| Sonar
@@ -54,7 +52,6 @@ graph TD
     Repo -->|Git sync| Argo
     App -->|Pulls deployment image| Registry
 
-    %% Assign styles to blocks
     style Ubuntu_Server fill:#fafafa,stroke:#333,stroke-width:2px
     style Jenkins_Service fill:#eff7ed,stroke:#82b366,stroke-width:1px
     style K3s_Cluster fill:#fff0f0,stroke:#b85450,stroke-width:1px
