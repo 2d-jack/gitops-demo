@@ -25,7 +25,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: gitops-app
-          image: ghcr.io/2d-jack/gitops-demo:392f960
+          image: ghcr.io/2d-jack/gitops-demo:b38e2e8
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
